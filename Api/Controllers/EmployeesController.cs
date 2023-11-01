@@ -1,6 +1,6 @@
-﻿using Api.Dtos.Dependent;
-using Api.Dtos.Employee;
+﻿using Api.Dtos.Employee;
 using Api.Models;
+using Api.Services;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 
@@ -10,90 +10,153 @@ namespace Api.Controllers;
 [Route("api/v1/[controller]")]
 public class EmployeesController : ControllerBase
 {
-    [SwaggerOperation(Summary = "Get employee by id")]
-    [HttpGet("{id}")]
-    public async Task<ActionResult<ApiResponse<GetEmployeeDto>>> Get(int id)
+    //Use dependency injection for service layer
+    private IEmployeeService employeeService;
+
+    public EmployeesController(IEmployeeService employeeService)
     {
-        throw new NotImplementedException();
+        this.employeeService = employeeService;
     }
 
+    /// <summary>
+    /// This endpoint will return all of the employees in the database
+    /// </summary>
+    /// <returns>If successful, the data object will contain all of the employee records</returns>
     [SwaggerOperation(Summary = "Get all employees")]
     [HttpGet("")]
     public async Task<ActionResult<ApiResponse<List<GetEmployeeDto>>>> GetAll()
     {
-        //task: use a more realistic production approach
-        var employees = new List<GetEmployeeDto>
+        var result = new ApiResponse<List<GetEmployeeDto>>();
+        var employees = await employeeService.GetAllEmployees();
+        if (employees == null)
         {
-            new()
-            {
-                Id = 1,
-                FirstName = "LeBron",
-                LastName = "James",
-                Salary = 75420.99m,
-                DateOfBirth = new DateTime(1984, 12, 30)
-            },
-            new()
-            {
-                Id = 2,
-                FirstName = "Ja",
-                LastName = "Morant",
-                Salary = 92365.22m,
-                DateOfBirth = new DateTime(1999, 8, 10),
-                Dependents = new List<GetDependentDto>
-                {
-                    new()
-                    {
-                        Id = 1,
-                        FirstName = "Spouse",
-                        LastName = "Morant",
-                        Relationship = Relationship.Spouse,
-                        DateOfBirth = new DateTime(1998, 3, 3)
-                    },
-                    new()
-                    {
-                        Id = 2,
-                        FirstName = "Child1",
-                        LastName = "Morant",
-                        Relationship = Relationship.Child,
-                        DateOfBirth = new DateTime(2020, 6, 23)
-                    },
-                    new()
-                    {
-                        Id = 3,
-                        FirstName = "Child2",
-                        LastName = "Morant",
-                        Relationship = Relationship.Child,
-                        DateOfBirth = new DateTime(2021, 5, 18)
-                    }
-                }
-            },
-            new()
-            {
-                Id = 3,
-                FirstName = "Michael",
-                LastName = "Jordan",
-                Salary = 143211.12m,
-                DateOfBirth = new DateTime(1963, 2, 17),
-                Dependents = new List<GetDependentDto>
-                {
-                    new()
-                    {
-                        Id = 4,
-                        FirstName = "DP",
-                        LastName = "Jordan",
-                        Relationship = Relationship.DomesticPartner,
-                        DateOfBirth = new DateTime(1974, 1, 2)
-                    }
-                }
-            }
-        };
+            result.Success = false;
+            result.Error = "No employees were found in the repository";
 
-        var result = new ApiResponse<List<GetEmployeeDto>>
+            return NotFound(result);
+        }
+
+        result.Success = true;
+        result.Data = employees;
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// This endpoint will return a specific employee record from the database
+    /// </summary>
+    /// <param name="id"></param>
+    /// <returns>If successful, the data object will contain the employee's record</returns>
+    [SwaggerOperation(Summary = "Get employee by id")]
+    [HttpGet("{id}")]
+    public async Task<ActionResult<ApiResponse<GetEmployeeDto>>> Get(int id)
+    {
+        var result = new ApiResponse<GetEmployeeDto>();
+        var employee = await employeeService.GetEmployeeById(id);
+        if (employee == null)
         {
-            Data = employees,
-            Success = true
-        };
+            result.Success = false;
+            result.Error = $"Specified employee id {id} was not found";
+
+            return NotFound(result);
+        }
+
+        result.Success = true;
+        result.Data = employee;
 
         return result;
+    }
+
+    /// <summary>
+    /// Added an endpoint to allow consumer to add new employees to the database
+    /// </summary>
+    /// <param name="employee"></param>
+    /// <returns>If successful, the data object will contain the new employee record</returns>
+    [SwaggerOperation(Summary = "Add new employee")]
+    [HttpPost("")]
+    public async Task<ActionResult<ApiResponse<GetEmployeeDto>>> AddNewEmployee([FromBody] GetEmployeeDto employee)
+    {
+        var result = new ApiResponse<GetEmployeeDto>();
+        var newEmployee = await employeeService.AddNewEmployee(employee);
+        if (newEmployee == null)
+        {
+            result.Success = false;
+            result.Error = $"Error adding new employee";
+
+            return result;
+        }
+
+        result.Success = true;
+        result.Data = newEmployee;
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Added endpoint to allow consumer to edit an existing employee record
+    /// </summary>
+    /// <param name="employeeId"></param>
+    /// <param name="employee"></param>
+    /// <returns>If successful, the data object will contain the updated employee record</returns>
+    [SwaggerOperation(Summary = "Update employee")]
+    [HttpPut("{employeeId}")]
+    public async Task<ActionResult<ApiResponse<GetEmployeeDto>>> UpdateEmployee(int employeeId, [FromBody] GetEmployeeDto employee)
+    {
+        var result = new ApiResponse<GetEmployeeDto>();
+        var employeeRecord = await employeeService.GetEmployeeById(employeeId);
+        if (employeeRecord == null)
+        {
+            result.Success = false;
+            result.Error = $"Employee was not found in the repository";
+
+            return NotFound(result);
+        }
+
+        var updatedEmployee = await employeeService.UpdateEmployee(employeeId, employee);
+        if (updatedEmployee == null)
+        {
+            result.Success = false;
+            result.Error = $"There was an error updating the employee";
+
+            return NotFound(result);
+        }
+
+        result.Success = true;
+        result.Data = updatedEmployee;
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Added endpoint to allow consumer to remove an employee's record
+    /// </summary>
+    /// <param name="employeeId"></param>
+    /// <returns>If successful, an Ok result is returned</returns>
+    [SwaggerOperation(Summary = "Delete employee")]
+    [HttpDelete("{employeeId}")]
+    public async Task<ActionResult<ApiResponse<GetEmployeeDto>>> DeleteEmployee(int employeeId)
+    {
+        var result = new ApiResponse<GetEmployeeDto>();
+        var employee = await employeeService.GetEmployeeById(employeeId);
+        if (employee == null)
+        {
+            result.Success = false;
+            result.Error = $"Employee was not found in the repository";
+
+            return NotFound(result);
+        }
+
+        var success = await employeeService.DeleteEmployee(employeeId);
+        if (!success)
+        {
+            result.Success = false;
+            result.Error = $"There was an error deleting the employee";
+
+            return (result);
+        }
+
+        result.Success = true;
+
+        return Ok(result);
     }
 }

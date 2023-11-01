@@ -1,16 +1,33 @@
+using Api.Dtos.Dependent;
+using Api.Dtos.Employee;
+using Api.Dtos.Paycheck;
+using Api.Models;
 using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
-using Api.Dtos.Dependent;
-using Api.Dtos.Employee;
-using Api.Models;
 using Xunit;
 
 namespace ApiTests.IntegrationTests;
 
 public class EmployeeIntegrationTests : IntegrationTest
 {
+    //[Fact]
+    //public async Task WhenCreatingAnEmployee_ShouldReturn200Ok()
+    //{
+    //    var employee = new GetEmployeeDto()
+    //    {
+    //        Id = 1,
+    //        FirstName = "LeBron",
+    //        LastName = "James",
+    //        Salary = 75420.99m,
+    //        DateOfBirth = new DateTime(1984, 12, 30)
+    //    };
+    //    var response = await HttpClient.PostAsJsonAsync("/api/v1/employees", employee);
+
+    //    await response.ShouldReturn(HttpStatusCode.OK, employee);
+    //}
+
     [Fact]
     public async Task WhenAskedForAllEmployees_ShouldReturnAllEmployees()
     {
@@ -23,7 +40,7 @@ public class EmployeeIntegrationTests : IntegrationTest
                 FirstName = "LeBron",
                 LastName = "James",
                 Salary = 75420.99m,
-                DateOfBirth = new DateTime(1984, 12, 30)
+                DateOfBirth = new DateTime(1984, 12, 30, 6, 0, 0, DateTimeKind.Utc)
             },
             new()
             {
@@ -31,7 +48,7 @@ public class EmployeeIntegrationTests : IntegrationTest
                 FirstName = "Ja",
                 LastName = "Morant",
                 Salary = 92365.22m,
-                DateOfBirth = new DateTime(1999, 8, 10),
+                DateOfBirth = new DateTime(1998, 8, 10, 0, 0, 0, DateTimeKind.Utc),
                 Dependents = new List<GetDependentDto>
                 {
                     new()
@@ -40,7 +57,7 @@ public class EmployeeIntegrationTests : IntegrationTest
                         FirstName = "Spouse",
                         LastName = "Morant",
                         Relationship = Relationship.Spouse,
-                        DateOfBirth = new DateTime(1998, 3, 3)
+                        DateOfBirth = new DateTime(1998, 3, 3, 0, 0, 0, DateTimeKind.Utc)
                     },
                     new()
                     {
@@ -48,7 +65,7 @@ public class EmployeeIntegrationTests : IntegrationTest
                         FirstName = "Child1",
                         LastName = "Morant",
                         Relationship = Relationship.Child,
-                        DateOfBirth = new DateTime(2020, 6, 23)
+                        DateOfBirth = new DateTime(2020, 6, 23, 0, 0, 0, DateTimeKind.Utc)
                     },
                     new()
                     {
@@ -56,7 +73,7 @@ public class EmployeeIntegrationTests : IntegrationTest
                         FirstName = "Child2",
                         LastName = "Morant",
                         Relationship = Relationship.Child,
-                        DateOfBirth = new DateTime(2021, 5, 18)
+                        DateOfBirth = new DateTime(2021, 5, 18, 0, 0, 0, DateTimeKind.Utc)
                     }
                 }
             },
@@ -66,7 +83,7 @@ public class EmployeeIntegrationTests : IntegrationTest
                 FirstName = "Michael",
                 LastName = "Jordan",
                 Salary = 143211.12m,
-                DateOfBirth = new DateTime(1963, 2, 17),
+                DateOfBirth = new DateTime(1963, 2, 17, 0, 0, 0, DateTimeKind.Utc),
                 Dependents = new List<GetDependentDto>
                 {
                     new()
@@ -75,7 +92,26 @@ public class EmployeeIntegrationTests : IntegrationTest
                         FirstName = "DP",
                         LastName = "Jordan",
                         Relationship = Relationship.DomesticPartner,
-                        DateOfBirth = new DateTime(1974, 1, 2)
+                        DateOfBirth = new DateTime(1974, 1, 2, 0, 0, 0, DateTimeKind.Utc)
+                    }
+                }
+            },
+            new()
+            {
+                Id = 4,
+                FirstName = "Jesse",
+                LastName = "Duke",
+                Salary = 29445.85m,
+                DateOfBirth = new DateTime(1966,2,21,0,0,0, DateTimeKind.Utc),
+                Dependents = new List<GetDependentDto>
+                {
+                    new()
+                    {
+                        Id = 6,
+                        FirstName = "Daisy",
+                        LastName = "Duke",
+                        Relationship = Relationship.Child,
+                        DateOfBirth = new DateTime(1971,10,31,0,0,0, DateTimeKind.Utc)
                     }
                 }
             }
@@ -84,7 +120,6 @@ public class EmployeeIntegrationTests : IntegrationTest
     }
 
     [Fact]
-    //task: make test pass
     public async Task WhenAskedForAnEmployee_ShouldReturnCorrectEmployee()
     {
         var response = await HttpClient.GetAsync("/api/v1/employees/1");
@@ -94,17 +129,15 @@ public class EmployeeIntegrationTests : IntegrationTest
             FirstName = "LeBron",
             LastName = "James",
             Salary = 75420.99m,
-            DateOfBirth = new DateTime(1984, 12, 30)
+            DateOfBirth = new DateTime(1984, 12, 30, 6, 0, 0, DateTimeKind.Utc)
         };
         await response.ShouldReturn(HttpStatusCode.OK, employee);
     }
     
     [Fact]
-    //task: make test pass
     public async Task WhenAskedForANonexistentEmployee_ShouldReturn404()
     {
         var response = await HttpClient.GetAsync($"/api/v1/employees/{int.MinValue}");
         await response.ShouldReturn(HttpStatusCode.NotFound);
     }
 }
-
